@@ -20,6 +20,9 @@
 				</section>
 			</div>
 		</md-toolbar>
+		<md-content flex layout-padding id="container">
+			<!-- Content will be inserted by websocket connection -->
+		</md-content>
 		<div>
 			<section layout="row">
 				<md-sidenav class="md-sidenav-left" md-component-id="left" md-whiteframe="4">
@@ -40,13 +43,6 @@
 						</md-list>
 					</md-content>
 			</section>
-			<section layout="column" flex>
-				<section layout="row" flex>
-					<md-content flex layout-padding id="container">
-						<!-- Content will be inserted by websocket connection -->
-					</md-content>
-				</section>
-			</section>
 		</div>
 	</div>
 	</body>
@@ -62,5 +58,13 @@
 	<script src="/js/app.js"></script>
 	<script src="/js/index.js"></script>
 	<script src="/js/websock.js"></script>
+	<style type="text/css">
+		.scrollLock{
+			position: fixed;
+		}
+		md-sidenav, md-backdrop,  {
+			position: fixed !important;
+		}
+	</style>
 </html>
 << end >>

@@ -1,0 +1,45 @@
+<< define "login" >>
+<html>
+	<head>
+		<title>Certbit Log</title>
+		<meta name="viewport" content="width=device-width initial-scale=1 user-scalable=no" >
+		<link rel="stylesheet" href="/css/angular-material.min.css">
+		<link rel="stylesheet" href="/css/fonts.css">
+	</head>
+	<body ng-app="webtail">
+	<div ng-controller="loginController as lc" layout="column" ng-cloak>
+		<md-toolbar class="md-hue-2 md-whiteframe-z3">
+			<div class="md-toolbar-tools">
+			   <h2>Certbit Log</h2>
+			</div>
+		</md-toolbar>
+    <form action="/login" method="POST" layout="column" flex layout-align="center center">
+        <md-input-container class="md-icon-float md-block">
+          <label>Username</label>
+          <input name="username" id="username" type="text" ng-required="true">
+        </md-input-container>
+        <md-input-container class="md-icon-float md-block">
+          <label>Password</label>
+          <input name="password" id="password" type="password" ng-required="true">
+        </md-input-container>
+      	<md-button type="submit" class="{{ errDialog ? 'md-warn' : 'md-primary' }} md-raised md-hue-1">Login</md-button>
+      <input type="hidden" name="csrf_token" value="<<.Token>>" />
+			<div ng-if="errDialog">
+				<b style="color:red">Invalid Login<b>
+			</div>
+    </form>
+	</div>
+	</body>
+	<script src="/js/angular.min.js"></script>
+	<script src="/js/angular-animate.min.js"></script>
+	<script src="/js/angular-messages.min.js"></script>
+	<script src="/js/angular-aria.min.js"></script>
+	<script src="/js/angular-ui-router.min.js"></script>
+	<script src="/js/angular-material.min.js"></script>
+	<script src="/js/ui-bootstrap.min.js"></script>
+	<script src="/js/ui-bootstrap-tpls.min.js"></script>
+	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
+	<script src="/js/app.js"></script>
+	<script src="/js/loginController.js"></script>
+</html>
+<< end >>

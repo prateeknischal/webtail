@@ -1,6 +1,7 @@
-angular.module('webtail', ["ngMaterial"]).config(["$qProvider", function($qProvider){
+angular.module('webtail', ["ngMaterial"])
+.config(["$qProvider", function($qProvider){
   $qProvider.errorOnUnhandledRejections(false);
-}])
+}]);
 
 angular.module('webtail', ['ngMaterial'])
 .config(function($mdThemingProvider) {
