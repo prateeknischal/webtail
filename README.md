@@ -52,6 +52,10 @@ This will have the authentication layer with another layer of ACL, allowing only
 
 To build from source, please refer the Makefile, all you need to do is change the `GOOS` and `GOARCH` variables to your specific distributions. The Makefile has it configured for `linux/amd64` by default.
 
+```
+make clean package
+```
+
 **Note**    
 If you get the following error:
 ```
