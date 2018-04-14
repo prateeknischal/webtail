@@ -64,6 +64,18 @@ Reference: [pam_appl.h and pam_misc.h missing](https://stackoverflow.com/questio
 
 It uses the `LDFLAG -lpam` to build the C code, so if you get errors related to this, worth looking for.
 
+### Screenshots
+Login
+![N|Solid](https://raw.githubusercontent.com/prateeknischal/webtail/master/screenshots/webtail_login.png)
+
+Dashboard
+![N|Solid](https://raw.githubusercontent.com/prateeknischal/webtail/master/screenshots/webtail_dashboard.png)
+
+SideNav
+![N|Solid](https://raw.githubusercontent.com/prateeknischal/webtail/master/screenshots/webtail_filenav.png)
+
+Tail
+![N|Solid](https://raw.githubusercontent.com/prateeknischal/webtail/master/screenshots/webtail_tail.png)
 
 #### TODOs
 * Add https support
