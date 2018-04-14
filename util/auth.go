@@ -36,6 +36,7 @@ func Login(r *http.Request) (bool, string, error) {
 	return false, "", errors.New("Invalid Login credentials")
 }
 
+// GenerateSecureKey - Key for CSRF Tokens
 func GenerateSecureKey() string {
 	// Inspired from gorilla/securecookie
 	k := make([]byte, 32)
