@@ -1,12 +1,12 @@
 package controllers
 
 import (
+	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strings"
 
 	ctx "github.com/gorilla/context"
@@ -14,47 +14,48 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/gorilla/sessions"
 	"github.com/gorilla/websocket"
-	"github.com/hpcloud/tail"
 	"github.com/prateeknischal/webtail/util"
 )
 
 // RootHandler - http handler for handling / path
 func RootHandler(w http.ResponseWriter, r *http.Request) {
-	absPath, _ := filepath.Abs(util.Conf.Dir)
-	files, err := ioutil.ReadDir(absPath)
-	if err != nil {
-		panic(err)
-	}
+	// absPath, _ := filepath.Abs(util.Conf.Dir[0])
+	// files, err := ioutil.ReadDir(absPath)
+	// if err != nil {
+	// 	panic(err)
+	// }
 	t := template.New("index").Delims("<<", ">>")
-	t, err = t.ParseFiles("templates/index.tmpl")
+	t, err := t.ParseFiles("templates/index.tmpl")
 	t = template.Must(t, err)
 	if err != nil {
 		panic(err)
 	}
 	var fileList struct {
 		FileList []string
+		Token    string
 	}
 
-	for _, f := range files {
-		/* skip all files that are :
-		   d: is a directory
-		   a: append-only
-		   l: exclusive use
-		   T: temporary file; Plan 9 only
-		   L: symbolic link
-		   D: device file
-		   p: named pipe (FIFO)
-		   S: Unix domain socket
-		   u: setuid
-		   g: setgid
-		   c: Unix character device, when ModeDevice is set
-		   t: sticky
-		*/
-		if !strings.ContainsAny(f.Mode().String(), "dalTLDpSugct") {
-			fileList.FileList = append(fileList.FileList, f.Name())
-		}
-	}
-
+	// for _, f := range files {
+	// 	/* skip all files that are :
+	// 	   d: is a directory
+	// 	   a: append-only
+	// 	   l: exclusive use
+	// 	   T: temporary file; Plan 9 only
+	// 	   L: symbolic link
+	// 	   D: device file
+	// 	   p: named pipe (FIFO)
+	// 	   S: Unix domain socket
+	// 	   u: setuid
+	// 	   g: setgid
+	// 	   c: Unix character device, when ModeDevice is set
+	// 	   t: sticky
+	// 	*/
+	// 	if !strings.ContainsAny(f.Mode().String(), "dalTLDpSugct") {
+	// 		fileList.FileList = append(fileList.FileList, f.Name())
+	// 	}
+	// }
+	fileList.FileList = util.Conf.Dir
+	fileList.Token = csrf.Token(r)
 	t.Execute(w, fileList)
 }
 
@@ -64,7 +65,8 @@ func WSHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
 	}
-	go tailFile(conn, mux.Vars(r)["file"])
+	filename, _ := base64.StdEncoding.DecodeString(mux.Vars(r)["b64file"])
+	go util.TailFile(conn, string(filename))
 }
 
 // LoginHandler - handles the POST reques to /login
@@ -73,7 +75,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	var isValid = false
 	var username = "Anon"
 	var err error
-	fmt.Println(util.Conf.Dir, util.Conf.ForceAuth)
+
 	if util.Conf.ForceAuth {
 		isValid, username, err = util.Login(r)
 		fmt.Println(isValid, username)
@@ -111,23 +113,16 @@ func LoginPageHandler(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, csrf)
 }
 
-func tailFile(conn *websocket.Conn, fileName string) {
-	currDir, _ := filepath.Abs(util.Conf.Dir)
-	// Get the last element of the path
-	fileLeafPath := filepath.Base(fileName)
-	t, err := tail.TailFile(currDir+string(os.PathSeparator)+fileLeafPath,
-		tail.Config{
-			Follow: true,
-			Location: &tail.SeekInfo{
-				Whence: os.SEEK_END,
-			},
-		})
-	if err != nil {
-		fmt.Println("Error occurred in opening the file: ", err)
+// LogoutHandler - handles logout requests
+func LogoutHandler(w http.ResponseWriter, r *http.Request) {
+	if util.Conf.ForceAuth == false {
+		http.Redirect(w, r, "/", 302)
 	}
-	for line := range t.Lines {
-		conn.WriteMessage(websocket.TextMessage, []byte(line.Text))
-	}
+
+	session := ctx.Get(r, "session").(*sessions.Session)
+	delete(session.Values, "id")
+	session.Save(r, w)
+	http.Redirect(w, r, "/login?logout=success", 302)
 }
 
 // AuthHandler - checks if user is logged in
@@ -158,17 +153,52 @@ func GetContext(handler http.Handler) http.HandlerFunc {
 		ctx.Set(r, "session", session)
 		if id, ok := session.Values["id"]; ok {
 			ctx.Set(r, "user", id)
+			ctx.Set(r, "isLoggedIn", true)
 		} else {
 			ctx.Set(r, "user", nil)
+			ctx.Set(r, "isLoggedIn", false)
 		}
 
 		// If running on No-Login enforced mode then will set an anon context
 		if !util.Conf.ForceAuth {
 			ctx.Set(r, "user", "Anon")
+			ctx.Set(r, "isLoggedIn", false)
 		}
 
 		handler.ServeHTTP(w, r)
 		// Remove context contents
 		ctx.Clear(r)
+	}
+}
+
+// UserDetails - returns user name who is logged in
+func UserDetails(w http.ResponseWriter, r *http.Request) {
+	username := ctx.Get(r, "user").(string)
+	isLoggedIn := ctx.Get(r, "isLoggedIn").(bool)
+	var resp = struct {
+		Username   string `json:"username"`
+		IsLoggedIn bool   `json:"isLoggedIn"`
+	}{
+		Username:   username,
+		IsLoggedIn: isLoggedIn,
+	}
+	json.NewEncoder(w).Encode(resp)
+}
+
+// CSRFExemptPrefixes - list of endpoints that does not require csrf protction
+var CSRFExemptPrefixes = []string{
+	"/user",
+}
+
+// CSRFExceptions - exempts ajax calls from csrf tokens
+func CSRFExceptions(handler http.Handler) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		for _, prefix := range CSRFExemptPrefixes {
+			if strings.HasPrefix(r.URL.Path, prefix) {
+				r = csrf.UnsafeSkipCheck(r)
+				break
+			}
+		}
+		handler.ServeHTTP(w, r)
 	}
 }

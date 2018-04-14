@@ -5,7 +5,8 @@ loginController.$inject = ["$rootScope", "$scope"]
 function loginController($rootScope, $scope) {
   var vm = this;
 
-  $scope.errDialog = false
+  $scope.showMessage = false
+  $scope.success = true;
   function getUrlVars(){
     var vars = [], hash;
     var hashes = window.location.href.slice(window.location.href.indexOf('?') + 1).split('&');
@@ -22,7 +23,16 @@ function loginController($rootScope, $scope) {
     var query = getUrlVars();
     console.log(query);
     if (query["err"] === "invalid") {
-      $scope.errDialog = true;
+      $scope.success = false;
+      $scope.message = "Invalid Credentials"
+      $scope.text_color="red"
+      $scope.showMessage = true;
+    }
+    else if (query["logout"] === "success") {
+      $scope.success = true;
+      $scope.message = "Logout Successful"
+      $scope.text_color="green"
+      $scope.showMessage = true;
     }
   }
 

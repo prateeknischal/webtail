@@ -1,70 +1,119 @@
 << define "index" >>
 <html>
-	<head>
-		<title>Certbit Log</title>
-		<meta name="viewport" content="width=device-width initial-scale=1 user-scalable=no" >
-		<link rel="stylesheet" href="/css/angular-material.min.css">
-		<link rel="stylesheet" href="/css/fonts.css">
-	</head>
-	<body ng-app="webtail">
-	<div ng-controller="mainController as mc" layout="column" ng-cloak>
-		<md-toolbar class="md-hue-2 md-whiteframe-z3">
-			<div class="md-toolbar-tools">
-				<section layout="row" flex>
-					<div ng-click="mc.toggleSideNav()" layout="column">
-						<h2>Certbit Log</h2>
-					</div>
-					<div layout="column" flex layout-align="center center">
-						<h3 id="filename"></h3>
-					</div>
-				</section>
-			</div>
-		</md-toolbar>
-		<md-content flex layout-padding id="container">
-			<!-- Content will be inserted by websocket connection -->
-		</md-content>
-		<div>
-			<section layout="row">
-				<md-sidenav class="md-sidenav-left" md-component-id="left" md-whiteframe="4">
-					<md-toolbar>
-						<h1 class="md-toolbar-tools">Certbit Log Directory</h1>
-					</md-toolbar>
-
-					<md-content>
-						<md-list>
-						<<range .FileList>>
-							<md-list-item class="md-3-line" id="filelist">
-							<div class="md-list-item-text" onClick="open_connection(<<.>>)">
-								<<.>>
-							</div>
-							</md-list-item>
-							<md-divider></md-divider>
-						<<end>>
-						</md-list>
-					</md-content>
-			</section>
-		</div>
-	</div>
-	</body>
-	<script src="/js/angular.min.js"></script>
-	<script src="/js/angular-animate.min.js"></script>
-	<script src="/js/angular-messages.min.js"></script>
-	<script src="/js/angular-aria.min.js"></script>
-	<script src="/js/angular-ui-router.min.js"></script>
-	<script src="/js/angular-material.min.js"></script>
-	<script src="/js/ui-bootstrap.min.js"></script>
-	<script src="/js/ui-bootstrap-tpls.min.js"></script>
-	<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js"></script>
-	<script src="/js/app.js"></script>
-	<script src="/js/index.js"></script>
-	<script src="/js/websock.js"></script>
-	<style type="text/css">
-		.scrollLock{
-			position: fixed;
-		}
-		md-sidenav, md-backdrop,  {
-			position: fixed !important;
-		}
-	</style>
+  <head>
+    <title>Webtail</title>
+    <meta name="viewport" content="width=device-width initial-scale=1 user-scalable=no" >
+    <link rel="stylesheet" href="/css/angular-material.min.css">
+    <link rel="stylesheet" href="/css/fonts.css">
+  </head>
+  <body ng-app="webtail">
+    <div ng-controller="mainController as mc" layout="column" ng-cloak>
+      <md-toolbar class="md-hue-2 md-whiteframe-z3">
+        <div class="md-toolbar-tools">
+          <section layout="row" flex>
+            <div ng-click="mc.toggleSideNav()" layout="column" class="md-padding">
+              <h2>Webtail</h2>
+            </div>
+            <div flex layout-align="center center" layout="column">
+              <h3 id="filename"></h3>
+            </div>
+            <div class="md-padding" layout="column">
+              <h3 id="username">{{username}}</h3>
+            </div>
+						<div ng-hide="!isLoggedIn" class="ng-hide">
+							<form action="/logout" method="POST" ng-hide="true" id="logoutForm">
+								<input type="hidden" name="csrf_token" value="<<.Token>>">
+							</form>
+              <div class="md-padding" ng-click="logout()">logout</div>
+            </div>
+          </section>
+        </div>
+      </md-toolbar>
+      <md-content flex layout-padding layout="column">
+        <md-content flex>
+          <md-input-container>
+            <label>Font Size</label>
+            <md-select ng-model="currSize">
+              <md-option ng-repeat="size in mc.fontSize" ng-value="size">
+                {{size}}
+              </md-option>
+            </md-select>
+          </md-input-container>
+        </md-content>
+        <md-content flex  class="md-padding" id="container"style="font-size:{{currSize}}">
+          <!-- Content will be inserted by websocket connection -->
+        </md-content>
+        <md-content class="md-padding">
+          <div layout="row" ng-hide="!showCard" class="ng-hide">
+            <md-content flex></md-content>
+            <md-card flex layout-align="center center">
+              <md-card-title>
+                <md-card-title-text>
+                  <span class="md-headline">Webtail - Remote log viewer</span>
+                </md-card-title-text>
+              </md-card-title>
+              <md-card-content>
+              <p>
+                To Get started, click on the banner to view the list of files
+              </p>
+              <p>
+                Have some fun :
+                <md-button ng-href="https://c.xkcd.com/random/comic/" target="_blank">Surprise!</md-button>
+              </p>
+              <p>
+                For any issues/suggestions:
+                <md-button flex href="https://github.com/prateeknischal/webtail"
+                  title="prateeknischal/webtail"
+                  target="_blank"
+                  aria-label="github.com"
+                  class="md-icon-button launch" >
+                  <md-icon md-svg-icon="/img/ic_launch_black_24px.svg"></md-icon>
+                </md-button>
+              </p>
+            </md-card>
+            <md-content flex></md-content>
+          </div>
+        </md-content>
+      </md-content>
+      <div>
+        <section layout="row">
+          <md-sidenav class="md-sidenav-left" md-component-id="left" md-whiteframe="4">
+          <md-toolbar>
+            <h1 class="md-toolbar-tools">Log Directory</h1>
+          </md-toolbar>
+          <md-content>
+            <md-list>
+              <<range .FileList>>
+              <md-list-item class="md-3-line" id="filelist" ng-click="open_connection('<<.>>')">
+                <div class="md-list-item-text">
+                  <<.>>
+                </div>
+              </md-list-item>
+              <md-divider></md-divider>
+              <<end>>
+            </md-list>
+          </md-content>
+        </section>
+      </div>
+    </div>
+  </body>
+  <script src="/js/angular.min.js"></script>
+  <script src="/js/angular-animate.min.js"></script>
+  <script src="/js/angular-messages.min.js"></script>
+  <script src="/js/angular-aria.min.js"></script>
+  <script src="/js/angular-ui-router.min.js"></script>
+  <script src="/js/angular-material.min.js"></script>
+  <script src="/js/ui-bootstrap.min.js"></script>
+  <script src="/js/ui-bootstrap-tpls.min.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/index.js"></script>
+  <style type="text/css">
+    .scrollLock{
+    position: fixed;
+    }
+    md-sidenav, md-backdrop,  {
+    position: fixed !important;
+    }
+  </style>
 </html>
 << end >>

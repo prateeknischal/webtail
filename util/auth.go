@@ -25,6 +25,10 @@ func init() {
 func Login(r *http.Request) (bool, string, error) {
 	username, password := r.FormValue("username"), r.FormValue("password")
 
+	if !IsWhitelisted(username) {
+		return false, "", fmt.Errorf("username %s denied due to ACL", username)
+	}
+
 	isValid := PamAauthenticate(username, password)
 	if isValid == 1 {
 		return true, username, nil

@@ -6,6 +6,7 @@ angular.module('webtail', ["ngMaterial"])
 angular.module('webtail', ['ngMaterial'])
 .config(function($mdThemingProvider) {
   $mdThemingProvider.theme('default')
-    .primaryPalette('blue')
-    .accentPalette('light-blue');
+    .primaryPalette('orange')
+    .accentPalette('amber');
+  $mdThemingProvider.setDefaultTheme('default');
 });
