@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"os"
@@ -14,16 +15,19 @@ import (
 )
 
 var (
-	dir       = kingpin.Arg("dir", "Directory path(s) to look for files").Default("./").ExistingFilesOrDirs()
-	port      = kingpin.Flag("port", "Port number to host the server").Short('p').Default("8080").Int()
-	restrict  = kingpin.Flag("restrict", "Enforce PAM authentication (single level)").Short('r').Bool()
-	whitelist = kingpin.Flag("whitelist", "enable whitelisting with users in the provided file").Short('w').ExistingFile()
-	cron      = kingpin.Flag("cron", "configure cron for re-indexing files (Not supported right now)").Short('c').Default("1h").String()
+	dir      = kingpin.Arg("dir", "Directory path(s) to look for files").Default("./").ExistingFilesOrDirs()
+	port     = kingpin.Flag("port", "Port number to host the server").Short('p').Default("8080").Int()
+	restrict = kingpin.Flag("restrict", "Enforce PAM authentication (single level)").Short('r').Bool()
+	acl      = kingpin.Flag("acl", "enable Access Control List with users in the provided file").Short('a').ExistingFile()
+	cron     = kingpin.Flag("cron", "configure cron for re-indexing files (Not supported right now)").Short('t').Default("1h").String()
+	secure   = kingpin.Flag("secure", "Run Server with TLS").Short('s').Bool()
+	cert     = kingpin.Flag("cert", "Server Certificate").Short('c').Default("server.crt").ExistingFile()
+	key      = kingpin.Flag("key", "Server Key File").Short('k').Default("server.key").ExistingFile()
 )
 
 func main() {
 	kingpin.Parse()
-	_ = util.ParseConfig(*dir, *restrict, *whitelist, *cron)
+	_ = util.ParseConfig(*dir, *restrict, *acl, *cron)
 
 	router := mux.NewRouter()
 
@@ -39,8 +43,37 @@ func main() {
 		csrf.FieldName("csrf_token"),
 		csrf.Secure(false))
 	csrfRouter := Use(csrfHandler(router).ServeHTTP, controllers.CSRFExceptions)
-	server := &http.Server{Addr: fmt.Sprintf("0.0.0.0:%d", *port), Handler: handlers.CombinedLoggingHandler(os.Stdout, csrfRouter)}
-	panic(server.ListenAndServe())
+
+	if *secure == false {
+		server := &http.Server{Addr: fmt.Sprintf("0.0.0.0:%d", *port), Handler: handlers.CombinedLoggingHandler(os.Stdout, csrfRouter)}
+		panic(server.ListenAndServe())
+	} else {
+		serverCert, err := tls.LoadX509KeyPair(*cert, *key)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "Failed to read the certificates %s", err)
+			panic(err)
+		}
+		tlsConfig := &tls.Config{
+			PreferServerCipherSuites: true,
+			MinVersion:               tls.VersionTLS11,
+			Certificates:             []tls.Certificate{serverCert},
+			CipherSuites: []uint16{
+				tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+				tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+				tls.TLS_RSA_WITH_AES_256_GCM_SHA384,
+				tls.TLS_RSA_WITH_AES_256_CBC_SHA,
+			},
+		}
+
+		server := &http.Server{
+			Addr:      fmt.Sprintf("0.0.0.0:%d", *port),
+			Handler:   handlers.CombinedLoggingHandler(os.Stdout, csrfRouter),
+			TLSConfig: tlsConfig,
+		}
+
+		panic(server.ListenAndServeTLS(*cert, *key))
+	}
 }
 
 // Use - Stacking middlewares

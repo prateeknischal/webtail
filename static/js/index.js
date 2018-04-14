@@ -42,7 +42,11 @@ function mainController($rootScope, $scope, $mdSidenav, $http) {
   }
 
   function initWS(file) {
-    var socket = new WebSocket("ws://"+window.location.hostname+":" + window.location.port + "/ws/" + btoa(file));
+    var ws_proto = "ws:"
+    if (window.location.protocol === "https:") {
+      ws_proto = "wss:"
+    }
+    var socket = new WebSocket(ws_proto + "//" +window.location.hostname+":" + window.location.port + "/ws/" + btoa(file));
     var container = angular.element(document.querySelector("#container"));
 
     // clear the contents

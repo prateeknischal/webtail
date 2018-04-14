@@ -7,22 +7,25 @@ Webtail is a web-socket based server that streams log files onto your browser. W
 ### Usage
 
 ```
-$ webtail --help
+$ ./webtail --help
 usage: webtail [<flags>] [<dir>...]
 
 Flags:
-      --help                 Show context-sensitive help (also try --help-long and --help-man).
-  -p, --port=8080            Port number to host the server
-  -r, --restrict             Enforce PAM authentication (single level)
-  -w, --whitelist=WHITELIST  enable whitelisting with users in the provided file
-  -c, --cron="1h"            configure cron for re-indexing files (Not supported right now)
+      --help             Show context-sensitive help (also try --help-long and --help-man).
+  -p, --port=8080        Port number to host the server
+  -r, --restrict         Enforce PAM authentication (single level)
+  -a, --acl=ACL          enable Access Control List with users in the provided file
+  -t, --cron="1h"        configure cron for re-indexing files (Not supported right now)
+  -s, --secure           Run Server with TLS
+  -c, --cert=server.crt  Server Certificate
+  -k, --key=server.key   Server Key File
 
 Args:
   [<dir>]  Directory path(s) to look for files
 
 ```
 
-To view the UI, navigate to *http://server_ip:port* and you will be presented with a UI to view the logs.
+To view the UI, navigate to *http(s)://server_ip:port* and you will be presented with a UI to view the logs.
 
 #### Examples
 ```
@@ -43,7 +46,7 @@ For this it uses [CGO](https://github.com/golang/go/wiki/cgo). A basic starting 
 This contains the code to interact with the system's PAM and check if a username/password combination is valid or not.
 
 ```
-./webtail /var/log/tomcat --restrict --whitelist ~/allowed-users.txt
+./webtail /var/log/tomcat --restrict --acl ~/allowed-users.txt
 ```
 This will have the authentication layer with another layer of ACL, allowing only those users to authenticate with the server which are in the `~/allowed-users.txt`. It accepts a file that has newline separated usernames.
 
@@ -55,6 +58,11 @@ To build from source, please refer the Makefile, all you need to do is change th
 ```
 make clean package
 ```
+If you are testing it then:
+```
+make clean build
+```
+and then you can run it from the project root
 
 **Note**    
 If you get the following error:
@@ -67,6 +75,41 @@ Then you need to install PAM developement libraries.
 Reference: [pam_appl.h and pam_misc.h missing](https://stackoverflow.com/questions/15614823/pam-appl-h-and-pam-misc-h-missing-in-rshd-c-source-code)
 
 It uses the `LDFLAG -lpam` to build the C code, so if you get errors related to this, worth looking for.
+
+### TLS Server
+
+To run the server with TLS enabled use `--secure` flag. It will search for `server.crt` and `server.key` files in the current directory, if not will fail.
+
+```
+./webtail /var/log/tomcat --secure --cert /path/to/server.crt --key /path/to/server.key --port 8443 --restrict
+```
+
+If you are running it on `--restrict` mode then it is recommended to use `--secure` flag as well to protect the login credentials on the wire.
+
+Server Accepts connections only on `TLSv1.1` and above
+List of CiphersSuites supported by the server:
+```
+tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
+tls.TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256
+tls.TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256
+tls.TLS_RSA_WITH_AES_256_GCM_SHA384
+tls.TLS_RSA_WITH_AES_256_CBC_SHA
+```
+
+to connect to a particular cipher you can use       
+**TLSv1.1**
+```
+echo "" | openssl s_client -connect localhost:8443 -cipher AES256-SHA -tls1_1 -quiet 2>/dev/null
+```
+**TLSv1.2**
+```
+ echo "" | openssl s_client -connect localhost:8443 -cipher ECDHE-RSA-AES128-SHA256 -tls1_2 -quiet 2>/dev/null
+```
+
+**Note**: It requires the private key to be in the plain text format. i.e. it should not be passphrase protected. Can be done via
+```
+openssl rsa -in [file1.key] -out [file2.key]
+```
 
 ### Screenshots
 Login
@@ -82,7 +125,7 @@ Tail
 ![N|Solid](https://raw.githubusercontent.com/prateeknischal/webtail/master/screenshots/webtail_tail.png)
 
 #### TODOs
-* Add https support
+* ~~Add https support~~
 * Add cron support to re-index files in the provided directories
 * Add a proper logger
 * Any help in UI is most welcome
