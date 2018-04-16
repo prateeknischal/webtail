@@ -12,17 +12,18 @@ $ ./webtail --help
 usage: webtail [<flags>] [<dir>...]
 
 Flags:
-      --help             Show context-sensitive help (also try --help-long and --help-man).
-  -p, --port=8080        Port number to host the server
-  -r, --restrict         Enforce PAM authentication (single level)
-  -a, --acl=ACL          enable Access Control List with users in the provided file
-  -t, --cron="1h"        configure cron for re-indexing files (Not supported right now)
-  -s, --secure           Run Server with TLS
-  -c, --cert=server.crt  Server Certificate
-  -k, --key=server.key   Server Key File
+      --help               Show context-sensitive help (also try --help-long and --help-man).
+  -p, --port=8080          Port number to host the server
+  -r, --restrict           Enforce PAM authentication (single level)
+  -a, --acl=ACL            enable Access Control List with users in the provided file
+  -t, --cron="1h"          configure cron for re-indexing files (Not supported right now)
+  -s, --secure             Run Server with TLS
+  -c, --cert="server.crt"  Server Certificate
+  -k, --key="server.key"   Server Key File
 
 Args:
   [<dir>]  Directory path(s) to look for files
+
 
 ```
 
@@ -43,8 +44,12 @@ This will run the server on port 15000 and recursively look for files in `/var/l
 ```
 This will add an authentication layer over it. Once you navigate to the home page, it will redirect to the `/login` page and ask for username and password. Since this is supposed to be as generic as possible, hence it uses PAM authentication to authenticate the user. You need to provide the credentials that you would use to login to the host on which the server is hosted. Right now it would only authenticate via PAM if only a single step is required.
 
-For this it uses [CGO](https://github.com/golang/go/wiki/cgo). A basic starting point for this would be [Calling Go functions from C](https://medium.com/using-go-in-mobile-apps/using-go-in-mobile-apps-part-1-calling-go-functions-from-c-be1ecf7dfbc6). This also has information on how to call C funtions from Golang, which is what is being used in this module. It is performing PAM authentication in [pam_auth.go](https://github.com/prateeknischal/webtail/blob/master/util/pam_auth.go).
+For this it uses [CGO](https://github.com/golang/go/wiki/cgo). A basic starting point for this would be [Calling Go functions from C](https://medium.com/using-go-in-mobile-apps/using-go-in-mobile-apps-part-1-calling-go-functions-from-c-be1ecf7dfbc6). This also has information on how to call C funtions from Golang, which is what is being used in this module. It is performing PAM authentication using the `passwd` service in [pam_auth.go](https://github.com/prateeknischal/webtail/blob/master/util/pam_auth.go).
+
 This contains the code to interact with the system's PAM and check if a username/password combination is valid or not.
+
+Some information about pam authentication : [RedHat - PAM Configuration files](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/6/html/managing_smart_cards/pam_configuration_files)
+
 
 ```
 ./webtail /var/log/tomcat --restrict --acl ~/allowed-users.txt
@@ -66,7 +71,7 @@ make clean build
 and then you can run it from the project root
 
 **Note**    
-If you get the following error:
+* If you get the following error:
 ```
 security/pam_appl.h: No such file or directory
 ```
@@ -75,7 +80,27 @@ Then you need to install PAM developement libraries.
 *Debian* : `sudo apt-get install -y libpam0g-dev`   
 Reference: [pam_appl.h and pam_misc.h missing](https://stackoverflow.com/questions/15614823/pam-appl-h-and-pam-misc-h-missing-in-rshd-c-source-code)
 
-It uses the `LDFLAG -lpam` to build the C code, so if you get errors related to this, worth looking for.
+
+* If you get the following error, then try building this in a linux box.
+(I saw some SO or Github post on this suggesting a fork of golang)
+```
+/usr/local/go/pkg/tool/darwin_amd64/link: running clang failed: exit status 1
+ld: warning: ignoring file /var/folders/30/qpxs8kwj3jzc612r2gsq17zwc2yvq5/T/go-link-136319902/go.o, file was built for unsupported file format ( 0x7F 0x45 0x4C 0x46 0x02 0x01 0x01 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 ) which is not the architecture being linked (x86_64): /var/folders/30/qpxs8kwj3jzc612r2gsq17zwc2yvq5/T/go-link-136319902/go.o
+Undefined symbols for architecture x86_64:
+  "__cgo_topofstack", referenced from:
+      __cgo_fc9493e99cab_Cfunc_authenticate_system in 000001.o
+      __cgo_f7895c2c5a3a_C2func_getnameinfo in 000004.o
+      __cgo_f7895c2c5a3a_Cfunc_getnameinfo in 000004.o
+      __cgo_f7895c2c5a3a_C2func_getaddrinfo in 000006.o
+      __cgo_f7895c2c5a3a_Cfunc_gai_strerror in 000006.o
+      __cgo_f7895c2c5a3a_Cfunc_getaddrinfo in 000006.o
+  "_main", referenced from:
+     implicit entry/start for main executable
+ld: symbol(s) not found for architecture x86_64
+clang: error: linker command failed with exit code 1 (use -v to see invocation)
+```
+
+* It uses the `LDFLAG -lpam` to build the C code, so if you get errors related to this, worth looking for.
 
 ### TLS Server
 
@@ -87,7 +112,7 @@ To run the server with TLS enabled use `--secure` flag. It will search for `serv
 
 If you are running it on `--restrict` mode then it is recommended to use `--secure` flag as well to protect the login credentials on the wire.
 
-Server Accepts connections only on `TLSv1.1` and above
+Server Accepts connections only on `TLSv1.1` and above    
 List of CiphersSuites supported by the server:
 ```
 tls.TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384
