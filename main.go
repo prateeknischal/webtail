@@ -21,8 +21,8 @@ var (
 	acl      = kingpin.Flag("acl", "enable Access Control List with users in the provided file").Short('a').ExistingFile()
 	cron     = kingpin.Flag("cron", "configure cron for re-indexing files (Not supported right now)").Short('t').Default("1h").String()
 	secure   = kingpin.Flag("secure", "Run Server with TLS").Short('s').Bool()
-	cert     = kingpin.Flag("cert", "Server Certificate").Short('c').Default("server.crt").ExistingFile()
-	key      = kingpin.Flag("key", "Server Key File").Short('k').Default("server.key").ExistingFile()
+	cert     = kingpin.Flag("cert", "Server Certificate").Short('c').Default("server.crt").String()
+	key      = kingpin.Flag("key", "Server Key File").Short('k').Default("server.key").String()
 )
 
 func main() {

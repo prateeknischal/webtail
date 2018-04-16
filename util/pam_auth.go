@@ -24,7 +24,7 @@ int authenticate_system(const char *username, const char *password)
     pam_handle_t *local_auth_handle = NULL; // this gets set by pam_start
 
     int retval;
-    retval = pam_start("su", username, &local_conversation, &local_auth_handle);
+    retval = pam_start("passwd", username, &local_conversation, &local_auth_handle);
 
     if (retval != PAM_SUCCESS){
         return 0;
