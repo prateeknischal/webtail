@@ -19,7 +19,7 @@ var (
 	port     = kingpin.Flag("port", "Port number to host the server").Short('p').Default("8080").Int()
 	restrict = kingpin.Flag("restrict", "Enforce PAM authentication (single level)").Short('r').Bool()
 	acl      = kingpin.Flag("acl", "enable Access Control List with users in the provided file").Short('a').ExistingFile()
-	cron     = kingpin.Flag("cron", "configure cron for re-indexing files (Not supported right now)").Short('t').Default("1h").String()
+	cron     = kingpin.Flag("cron", "configure cron for re-indexing files, Supported durations:[h -> hours, d -> days]").Short('t').Default("0h").String()
 	secure   = kingpin.Flag("secure", "Run Server with TLS").Short('s').Bool()
 	cert     = kingpin.Flag("cert", "Server Certificate").Short('c').Default("server.crt").String()
 	key      = kingpin.Flag("key", "Server Key File").Short('k').Default("server.key").String()
@@ -27,7 +27,11 @@ var (
 
 func main() {
 	kingpin.Parse()
-	_ = util.ParseConfig(*dir, *restrict, *acl, *cron)
+	err := util.ParseConfig(*dir, *restrict, *acl, *cron)
+
+	if err != nil {
+		panic(err)
+	}
 
 	router := mux.NewRouter()
 

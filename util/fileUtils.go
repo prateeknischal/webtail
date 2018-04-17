@@ -15,6 +15,10 @@ var (
 	// FileList - list of files that were parsed from the provided config
 	FileList []string
 	visited  map[string]bool
+
+	// Global Map that stores all the files, used to skip duplicates while
+	// subsequent indexing attempts in cron trigger
+	indexMap = make(map[string]bool)
 )
 
 // TailFile - Accepts a websocket connection and a filename and tails the
@@ -38,14 +42,34 @@ func TailFile(conn *websocket.Conn, fileName string) {
 
 // IndexFiles - takes argument as a list of files and directories and returns
 // a list of absolute file strings to be tailed
-func IndexFiles(fileList []string) {
+func IndexFiles(fileList []string) error {
+	// Re-initialize the visited array
+	visited = make(map[string]bool)
+
+	// marking all entries possible stale
+	// will be removed if not updated
+	for k := range indexMap {
+		indexMap[k] = false
+	}
+
 	for _, file := range fileList {
 		dfs(file)
 	}
-	fmt.Fprintln(os.Stderr, "Indexing complete !")
-	for _, f := range FileList {
-		fmt.Fprintln(os.Stderr, f)
+	// Re-initialize the file list array
+	FileList = make([]string, 0)
+
+	// Iterate through the map that contains the filenames
+	for k, v := range indexMap {
+		if v == false {
+			delete(indexMap, k)
+			continue
+		}
+		fmt.Fprintln(os.Stderr, k)
+		FileList = append(FileList, k)
 	}
+	Conf.Dir = FileList
+	fmt.Fprintln(os.Stderr, "Indexing complete !, file index length: ", len(Conf.Dir))
+	return nil
 }
 
 /* skip all files that are :
@@ -62,8 +86,14 @@ func IndexFiles(fileList []string) {
    t: sticky
 */
 func dfs(file string) {
+	// Mostly useful for first entry, as the paths may be like ../dir or ~/path/../dir
+	// or some wierd *nixy style, Once the file is cleaned and made into an absolute
+	// path, it should be safe as the next call is basepath(abspath) + "/" + name of
+	// the file which should be accurate in all terms and absolute without any
+	// funky conversions used in OS
 	file = filepath.Clean(file)
 	absPath, err := filepath.Abs(file)
+
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to get absolute path of the file %s; err: %s\n", file, err)
 	}
@@ -71,6 +101,7 @@ func dfs(file string) {
 		// if the absolute path has been visited, return without processing
 		return
 	}
+	visited[file] = true
 	s, err := os.Stat(absPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Unable to stat file %s; err: %s\n", file, err)
@@ -90,6 +121,7 @@ func dfs(file string) {
 		// only remaining file are ascii files that can be then differentiated
 		// by the user as golang has only these many categorization
 		// Note : this appends the absolute paths
-		FileList = append(FileList, absPath)
+		// Insert the absPath into the Map, avoids duplicates in successive cron runs
+		indexMap[absPath] = true
 	}
 }

@@ -8,15 +8,15 @@ Webtail is a web-socket based server that streams log files onto your browser. W
 ### Usage
 
 ```
-$ ./webtail --help
-usage: webtail [<flags>] [<dir>...]
+$ go run main.go --help
+usage: main [<flags>] [<dir>...]
 
 Flags:
       --help               Show context-sensitive help (also try --help-long and --help-man).
   -p, --port=8080          Port number to host the server
   -r, --restrict           Enforce PAM authentication (single level)
   -a, --acl=ACL            enable Access Control List with users in the provided file
-  -t, --cron="1h"          configure cron for re-indexing files (Not supported right now)
+  -t, --cron="0h"          configure cron for re-indexing files, Supported durations:[h -> hours, d -> days]
   -s, --secure             Run Server with TLS
   -c, --cert="server.crt"  Server Certificate
   -k, --key="server.key"   Server Key File
@@ -55,6 +55,12 @@ Some information about pam authentication : [RedHat - PAM Configuration files](h
 ./webtail /var/log/tomcat --restrict --acl ~/allowed-users.txt
 ```
 This will have the authentication layer with another layer of ACL, allowing only those users to authenticate with the server which are in the `~/allowed-users.txt`. It accepts a file that has newline separated usernames.
+
+
+```
+./webtail /var/log/tomcat --restrict --cron 5h
+```
+This will make the server re-index files every 5 hours. And the **New** files will be served only after a page refresh, once it has been indexed.
 
 
 ### Build From Source
@@ -137,6 +143,12 @@ echo "" | openssl s_client -connect localhost:8443 -cipher AES256-SHA -tls1_1 -q
 openssl rsa -in [file1.key] -out [file2.key]
 ```
 
+### Cron
+
+Cron option supports only 2 formats of time: `days` and `hours`.      
+You can say something like `5h` or `1d` or `100h` or `4d`. Zero prefixed time intervals are not allowed and will fail.    
+**Note**: By default cron is not enabled and will not re-index files.
+
 ### Screenshots
 Login
 ![N|Solid](https://raw.githubusercontent.com/prateeknischal/webtail/master/screenshots/webtail_login.png)
@@ -152,6 +164,6 @@ Tail
 
 #### TODOs
 * ~~Add https support~~
-* Add cron support to re-index files in the provided directories
+* ~~Add cron support to re-index files in the provided directories~~
 * Add a proper logger
 * Any help in UI is most welcome
