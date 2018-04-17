@@ -60,6 +60,9 @@ function mainController($rootScope, $scope, $mdSidenav, $http) {
     socket.onclose = function () {
         container.append("<p>Connection Closed to WebSocket, tail stopped</p>");
     }
+    socket.onerror = function (e) {
+      container.append("<b style='color:red'>Some error occurred " + e.data.trim() + "<b>");
+    }
     return socket;
   }
 

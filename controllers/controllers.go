@@ -7,6 +7,7 @@ import (
 	"html/template"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	ctx "github.com/gorilla/context"
@@ -65,8 +66,25 @@ func WSHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
 	}
-	filename, _ := base64.StdEncoding.DecodeString(mux.Vars(r)["b64file"])
-	go util.TailFile(conn, string(filename))
+	filenameB, _ := base64.StdEncoding.DecodeString(mux.Vars(r)["b64file"])
+	filename := string(filenameB)
+	// sanitize the file if it is present in the index or not.
+	filename = filepath.Clean(filename)
+	ok := false
+	for _, wFile := range util.Conf.Dir {
+		if filename == wFile {
+			ok = true
+			break
+		}
+	}
+	// If the file is found, only then start tailing the file.
+	// This is to prevent arbitrary file access. Otherwise send a 403 status
+	// This should take care of stacking of filenames as it would first
+	// be searched as a string in the index, if not found then rejected.
+	if ok {
+		go util.TailFile(conn, filename)
+	}
+	w.WriteHeader(http.StatusUnauthorized)
 }
 
 // LoginHandler - handles the POST reques to /login
