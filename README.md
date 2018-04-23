@@ -1,6 +1,7 @@
 # Webtail
 
-![](https://goreportcard.com/badge/github.com/prateeknischal/webtail)
+[![](https://goreportcard.com/badge/github.com/prateeknischal/webtail)](https://goreportcard.com/report/github.com/prateeknischal/webtail)
+
 ### Yet another browser based remote log viewer written in Golang
 
 Webtail is a web-socket based server that streams log files onto your browser. Written in [Golang](https://golang.org), this application provides a basic and clean material UI to view the logs as well.
