@@ -23,7 +23,8 @@
           <input name="password" id="password" type="password" ng-required="true">
         </md-input-container>
       	<md-button type="submit" class="{{ success ? 'md-primary' : 'md-warn' }} md-raised md-hue-1">Login</md-button>
-      <input type="hidden" name="csrf_token" value="<<.Token>>" />
+      <!-- <input type="hidden" name="X-CSRF-Token" value="<<.Token>>" /> -->
+			<< .csrfField >>
 			<div ng-if="showMessage">
 				<b style="color:{{text_color}}">{{message}}</b>
 			</div>

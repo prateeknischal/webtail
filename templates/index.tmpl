@@ -3,6 +3,7 @@
   <head>
     <title>Webtail</title>
     <meta name="viewport" content="width=device-width initial-scale=1 user-scalable=no" >
+    <meta name="csrf_token" content="<<.token>>">
     <link rel="stylesheet" href="/css/angular-material.min.css">
     <link rel="stylesheet" href="/css/fonts.css">
   </head>
@@ -22,7 +23,7 @@
             </div>
 						<div ng-hide="!isLoggedIn" class="ng-hide">
 							<form action="/logout" method="POST" ng-hide="true" id="logoutForm">
-								<input type="hidden" name="csrf_token" value="<<.Token>>">
+                <<.csrfField>>
 							</form>
               <div class="md-padding" ng-click="logout()">logout</div>
             </div>

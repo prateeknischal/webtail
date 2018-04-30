@@ -44,8 +44,8 @@ func main() {
 	router.PathPrefix("/").Handler(http.FileServer(http.Dir("./static/")))
 
 	csrfHandler := csrf.Protect([]byte(util.GenerateSecureKey()),
-		csrf.FieldName("csrf_token"),
-		csrf.Secure(false))
+		csrf.Secure(false), csrf.CookieName("X-CSRF-Token"))
+
 	csrfRouter := Use(csrfHandler(router).ServeHTTP, controllers.CSRFExceptions)
 
 	if *secure == false {

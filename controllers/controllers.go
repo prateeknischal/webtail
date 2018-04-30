@@ -18,54 +18,39 @@ import (
 	"github.com/prateeknischal/webtail/util"
 )
 
+var (
+	upgrader = websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024,
+	}
+)
+
 // RootHandler - http handler for handling / path
 func RootHandler(w http.ResponseWriter, r *http.Request) {
-	// absPath, _ := filepath.Abs(util.Conf.Dir[0])
-	// files, err := ioutil.ReadDir(absPath)
-	// if err != nil {
-	// 	panic(err)
-	// }
 	t := template.New("index").Delims("<<", ">>")
 	t, err := t.ParseFiles("templates/index.tmpl")
 	t = template.Must(t, err)
 	if err != nil {
 		panic(err)
 	}
-	var fileList struct {
-		FileList []string
-		Token    string
-	}
 
-	// for _, f := range files {
-	// 	/* skip all files that are :
-	// 	   d: is a directory
-	// 	   a: append-only
-	// 	   l: exclusive use
-	// 	   T: temporary file; Plan 9 only
-	// 	   L: symbolic link
-	// 	   D: device file
-	// 	   p: named pipe (FIFO)
-	// 	   S: Unix domain socket
-	// 	   u: setuid
-	// 	   g: setgid
-	// 	   c: Unix character device, when ModeDevice is set
-	// 	   t: sticky
-	// 	*/
-	// 	if !strings.ContainsAny(f.Mode().String(), "dalTLDpSugct") {
-	// 		fileList.FileList = append(fileList.FileList, f.Name())
-	// 	}
-	// }
-	fileList.FileList = util.Conf.Dir
-	fileList.Token = csrf.Token(r)
+	var fileList = make(map[string]interface{})
+
+	fileList["FileList"] = util.Conf.Dir
+	fileList[csrf.TemplateTag] = csrf.Token(r)
+	fileList["token"] = csrf.Token(r)
 	t.Execute(w, fileList)
 }
 
 // WSHandler - Websocket handler
 func WSHandler(w http.ResponseWriter, r *http.Request) {
-	conn, err := websocket.Upgrade(w, r, w.Header(), 1024, 1024)
+	conn, err := upgrader.Upgrade(w, r, w.Header())
 	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		http.Error(w, "Could not open websocket connection", http.StatusBadRequest)
+		return
 	}
+
 	filenameB, _ := base64.StdEncoding.DecodeString(mux.Vars(r)["b64file"])
 	filename := string(filenameB)
 	// sanitize the file if it is present in the index or not.
@@ -77,6 +62,7 @@ func WSHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+
 	// If the file is found, only then start tailing the file.
 	// This is to prevent arbitrary file access. Otherwise send a 403 status
 	// This should take care of stacking of filenames as it would first
@@ -106,7 +92,6 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		session.Save(r, w)
 		http.Redirect(w, r, "/", 302)
 	} else {
-		// flash(w, r, "danger", "Invalid Username/Password")
 		session.Save(r, w)
 		http.Redirect(w, r, "/login?err=invalid", 302)
 	}
@@ -123,12 +108,10 @@ func LoginPageHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		panic(err)
 	}
-	var csrf = struct {
-		Token string
-	}{
-		Token: csrf.Token(r),
-	}
-	t.Execute(w, csrf)
+
+	t.Execute(w, map[string]interface{}{
+		csrf.TemplateTag: csrf.TemplateField(r),
+	})
 }
 
 // LogoutHandler - handles logout requests
@@ -182,7 +165,7 @@ func GetContext(handler http.Handler) http.HandlerFunc {
 			ctx.Set(r, "user", "Anon")
 			ctx.Set(r, "isLoggedIn", false)
 		}
-
+		w.Header().Set("X-CSRF-Token", csrf.Token(r))
 		handler.ServeHTTP(w, r)
 		// Remove context contents
 		ctx.Clear(r)
@@ -205,7 +188,7 @@ func UserDetails(w http.ResponseWriter, r *http.Request) {
 
 // CSRFExemptPrefixes - list of endpoints that does not require csrf protction
 var CSRFExemptPrefixes = []string{
-	"/user",
+	// "/user",
 }
 
 // CSRFExceptions - exempts ajax calls from csrf tokens
