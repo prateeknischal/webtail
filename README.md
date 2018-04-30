@@ -166,5 +166,7 @@ Tail
 #### TODOs
 * ~~Add https support~~
 * ~~Add cron support to re-index files in the provided directories~~
+* Add file descriptor pooling while tailing to conserver resources
+* Add authentication on websockets (cannot validate CSRF token on GET request in gorilla/csrf, checking Origin header only for now)
 * Add a proper logger
 * Any help in UI is most welcome
